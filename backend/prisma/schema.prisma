@@ -1,0 +1,225 @@
+// BELOURA HIRING - Prisma Schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Enums
+enum PipelineStage {
+  new
+  qualifying
+  interview_scheduled
+  interview_done
+  tests_scheduled
+  tests_done
+  mock_scheduled
+  mock_done
+  onboarding_assigned
+  onboarding_done
+  probation_start
+  probation_end
+}
+
+enum OwnerRole {
+  sourcer
+  interviewer
+  chatting_managers
+}
+
+enum Verdict {
+  pass
+  fail
+  no_show
+  regular
+  not_regular
+}
+
+enum BonusStatus {
+  pending
+  approved
+  paid
+}
+
+// Models
+
+model Source {
+  id         String      @id @default(uuid())
+  name       String      @unique
+  type       String?
+  createdAt  DateTime    @default(now()) @map("created_at")
+
+  candidates Candidate[]
+
+  @@map("sources")
+}
+
+model Referrer {
+  id            String          @id @default(uuid())
+  name          String
+  externalId    String?         @map("external_id")
+  telegram      String?
+  createdAt     DateTime        @default(now()) @map("created_at")
+
+  candidates    Candidate[]
+  bonuses       ReferralBonus[]
+
+  @@unique([name, externalId])
+  @@index([externalId])
+  @@map("referrers")
+}
+
+model Candidate {
+  id            String          @id @default(uuid())
+  name          String
+  telegram      String?
+  country       String?
+  timezone      String?
+  sourceId      String?         @map("source_id")
+  referrerId    String?         @map("referrer_id")
+  currentStage  PipelineStage   @default(new) @map("current_stage")
+  currentOwner  OwnerRole?      @map("current_owner")
+  interviewRating Int?          @map("interview_rating")
+  notes         String?         @db.Text
+  createdAt     DateTime        @default(now()) @map("created_at")
+  updatedAt     DateTime        @updatedAt @map("updated_at")
+
+  source        Source?         @relation(fields: [sourceId], references: [id])
+  referrer      Referrer?       @relation(fields: [referrerId], references: [id])
+  stages        PipelineStageEntry[]
+  probation     Probation?
+  bonus         ReferralBonus?
+
+  @@index([currentStage])
+  @@index([sourceId])
+  @@index([referrerId])
+  @@index([createdAt])
+  @@index([updatedAt])
+  @@index([sourceId, interviewRating])
+  @@index([sourceId, currentStage])
+  @@index([sourceId, updatedAt])
+  @@map("candidates")
+}
+
+model PipelineStageEntry {
+  id                  String          @id @default(uuid())
+  candidateId         String          @map("candidate_id")
+  stage               PipelineStage
+  status              String
+  ownerRole           OwnerRole?      @map("owner_role")
+  scheduledDate       DateTime?       @map("scheduled_date")
+  completedDate       DateTime?       @map("completed_date")
+  verdict             Verdict?
+  remarks             String?         @db.Text
+  turnaroundTimeHours Int?            @map("turnaround_time_hours")
+  createdAt           DateTime        @default(now()) @map("created_at")
+  updatedAt           DateTime        @updatedAt @map("updated_at")
+
+  candidate           Candidate       @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  tests               Test?
+  mock                Mock?
+
+  @@index([candidateId])
+  @@index([stage])
+  @@index([completedDate])
+  @@map("pipeline_stages")
+}
+
+model Test {
+  id           String              @id @default(uuid())
+  stageId      String              @unique @map("stage_id")
+  wpmScore     Int?                @map("wpm_score")
+  englishScore Decimal?            @map("english_score") @db.Decimal(5, 2)
+  pass         Boolean?
+  createdAt    DateTime            @default(now()) @map("created_at")
+
+  stage        PipelineStageEntry  @relation(fields: [stageId], references: [id], onDelete: Cascade)
+
+  @@index([stageId])
+  @@map("tests")
+}
+
+model Mock {
+  id          String              @id @default(uuid())
+  stageId     String              @unique @map("stage_id")
+  verdict     Verdict?
+  scheduledAt DateTime?           @map("scheduled_at")
+  completedAt DateTime?           @map("completed_at")
+  createdAt   DateTime            @default(now()) @map("created_at")
+
+  stage       PipelineStageEntry  @relation(fields: [stageId], references: [id], onDelete: Cascade)
+
+  @@index([stageId])
+  @@map("mocks")
+}
+
+model Probation {
+  id          String    @id @default(uuid())
+  candidateId String    @unique @map("candidate_id")
+  startDate   DateTime  @map("start_date") @db.Date
+  endDate     DateTime  @map("end_date") @db.Date
+  verdict     Verdict?
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  candidate   Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+
+  @@index([candidateId])
+  @@index([endDate])
+  @@map("probation")
+}
+
+model ReferralBonus {
+  id          String       @id @default(uuid())
+  candidateId String       @unique @map("candidate_id")
+  referrerId  String       @map("referrer_id")
+  amount      Decimal      @default(20.00) @db.Decimal(10, 2)
+  status      BonusStatus  @default(pending)
+  approvedAt  DateTime?    @map("approved_at")
+  paidAt      DateTime?    @map("paid_at")
+  createdAt   DateTime     @default(now()) @map("created_at")
+
+  candidate   Candidate    @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  referrer    Referrer     @relation(fields: [referrerId], references: [id])
+
+  @@index([referrerId])
+  @@index([status])
+  @@map("referral_bonuses")
+}
+
+model AuditLog {
+  id         String    @id @default(uuid())
+  entityType String    @map("entity_type")
+  entityId   String    @map("entity_id")
+  userId     String?   @map("user_id")
+  userRole   String?   @map("user_role")
+  action     String
+  oldValue   Json?     @map("old_value")
+  newValue   Json?     @map("new_value")
+  timestamp  DateTime  @default(now())
+
+  @@index([entityType, entityId])
+  @@index([timestamp])
+  @@index([userId])
+  @@map("audit_log")
+}
+
+model User {
+  id           String    @id @default(uuid())
+  email        String    @unique
+  username     String?   @unique
+  passwordHash String    @map("password_hash")
+  name         String
+  role         OwnerRole
+  isActive     Boolean   @default(true) @map("is_active")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  @@index([email])
+  @@index([username])
+  @@index([role])
+  @@map("users")
+}

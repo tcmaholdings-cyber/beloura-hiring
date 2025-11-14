@@ -1,0 +1,58 @@
+name: beloura-hiring
+region: nyc
+
+databases:
+  - name: beloura-hiring-db
+    engine: PG
+    production: true
+    cluster_name: beloura-hiring-db
+
+services:
+  # Backend API
+  - name: backend
+    github:
+      repo: michaelaston/beloura-hiring
+      branch: main
+      deploy_on_push: true
+    source_dir: /backend
+    dockerfile_path: backend/Dockerfile
+    http_port: 3001
+    instance_count: 1
+    instance_size_slug: basic-xxs
+    routes:
+      - path: /api
+    envs:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: "3001"
+      - key: DATABASE_URL
+        scope: RUN_AND_BUILD_TIME
+        type: SECRET
+      - key: JWT_SECRET
+        scope: RUN_AND_BUILD_TIME
+        type: SECRET
+      - key: JWT_REFRESH_SECRET
+        scope: RUN_AND_BUILD_TIME
+        type: SECRET
+      - key: CORS_ORIGIN
+        value: https://beloura-hiring.ondigitalocean.app
+    health_check:
+      http_path: /health
+
+  # Frontend
+  - name: frontend
+    github:
+      repo: michaelaston/beloura-hiring
+      branch: main
+      deploy_on_push: true
+    source_dir: /frontend
+    dockerfile_path: frontend/Dockerfile
+    http_port: 80
+    instance_count: 1
+    instance_size_slug: basic-xxs
+    routes:
+      - path: /
+    envs:
+      - key: VITE_API_URL
+        value: https://beloura-hiring.ondigitalocean.app/api
