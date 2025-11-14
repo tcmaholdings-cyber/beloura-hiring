@@ -43,7 +43,7 @@ router.get(
     {
       field: 'role',
       required: false,
-      enum: ['sourcer', 'interviewer', 'chatting_manager'],
+      enum: ['sourcer', 'interviewer', 'chatting_managers'],
     },
   ]),
   listUsers
