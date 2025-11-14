@@ -14,7 +14,7 @@ router.post(
     { field: 'email', required: true, type: 'email' },
     { field: 'password', required: true, minLength: 6, maxLength: 128 },
     { field: 'name', required: true, minLength: 2, maxLength: 100 },
-    { field: 'role', required: true, enum: ['sourcer', 'interviewer', 'chatting_manager'] },
+    { field: 'role', required: true, enum: ['sourcer', 'interviewer', 'chatting_managers'] },
   ]),
   registerUser
 );
