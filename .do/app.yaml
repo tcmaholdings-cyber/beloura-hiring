@@ -38,7 +38,7 @@ services:
       - key: CORS_ORIGIN
         value: "*"
     health_check:
-      http_path: /api/health
+      http_path: /health
 
   # Frontend
   - name: frontend
