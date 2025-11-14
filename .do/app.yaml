@@ -55,4 +55,5 @@ services:
       - path: /
     envs:
       - key: VITE_API_URL
+        scope: BUILD_TIME
         value: https://beloura-hiring-jze2y.ondigitalocean.app/api/v1
