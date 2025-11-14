@@ -44,4 +44,5 @@ COPY prisma ./prisma
 EXPOSE 3001
 
 # Run migrations and start
-CMD ["sh", "-c", "npx prisma migrate resolve --applied 20250207160000_add_candidate_feedback_fields || true && npx prisma migrate deploy && node dist/index.js"]
+# Use prisma db push for initial schema sync, then migrations
+CMD ["sh", "-c", "npx prisma db push --skip-generate --accept-data-loss || npx prisma migrate deploy && node dist/index.js"]
