@@ -55,4 +55,4 @@ services:
       - path: /
     envs:
       - key: VITE_API_URL
-        value: ${APP_URL}/api
+        value: https://beloura-hiring-jze2y.ondigitalocean.app/api/v1
