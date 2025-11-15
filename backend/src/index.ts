@@ -88,6 +88,7 @@ import userRoutes from './routes/users';
 import candidateRoutes from './routes/candidates';
 import sourceRoutes from './routes/sources';
 import referrerRoutes from './routes/referrers';
+import importRoutes from './routes/import';
 
 // Mount routes
 app.use('/api/v1/auth', authRoutes);
@@ -95,6 +96,7 @@ app.use('/api/v1/users', userRoutes);
 app.use('/api/v1/candidates', candidateRoutes);
 app.use('/api/v1/sources', sourceRoutes);
 app.use('/api/v1/referrers', referrerRoutes);
+app.use('/api/v1/import', importRoutes);
 
 // 404 handler
 app.use((req, res) => {

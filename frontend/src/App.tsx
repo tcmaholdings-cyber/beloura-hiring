@@ -12,6 +12,7 @@ import { SourceList } from './pages/Sources';
 import { SourceAnalytics } from './pages/Sources/SourceAnalytics';
 import { ReferrerList } from './pages/Referrers';
 import { UserList } from './pages/Users';
+import ImportPage from './pages/Import';
 
 // Create a client for React Query
 const queryClient = new QueryClient({
@@ -58,6 +59,7 @@ function App() {
             <Route path="sources/analytics" element={<SourceAnalytics />} />
             <Route path="referrers" element={<ReferrerList />} />
             <Route path="users" element={<UserList />} />
+            <Route path="import" element={<ImportPage />} />
           </Route>
 
           {/* Catch all */}

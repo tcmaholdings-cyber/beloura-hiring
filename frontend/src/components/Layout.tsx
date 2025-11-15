@@ -44,6 +44,9 @@ export function Layout() {
             <NavLink to="/referrers" className={navLinkClass}>
               Referrers
             </NavLink>
+            <NavLink to="/import" className={navLinkClass}>
+              Import
+            </NavLink>
             {isAdmin && (
               <NavLink to="/users" className={navLinkClass}>
                 Users
