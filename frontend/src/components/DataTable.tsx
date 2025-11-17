@@ -28,6 +28,8 @@ interface DataTableProps<T> {
     onPageChange: (page: number) => void;
   };
   className?: string;
+  expandedRowId?: string | number | null;
+  renderExpandedRow?: (row: T) => ReactNode;
 }
 
 export function DataTable<T extends Record<string, any>>({
@@ -40,6 +42,8 @@ export function DataTable<T extends Record<string, any>>({
   defaultSortOrder = 'asc',
   pagination,
   className = '',
+  expandedRowId,
+  renderExpandedRow,
 }: DataTableProps<T>) {
   const [sortKey, setSortKey] = useState<string | null>(defaultSortKey || null);
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>(defaultSortOrder);
@@ -142,24 +146,38 @@ export function DataTable<T extends Record<string, any>>({
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
-            {sortedData.map((row) => (
-              <tr
-                key={keyExtractor(row)}
-                onClick={onRowClick ? () => onRowClick(row) : undefined}
-                className={onRowClick ? 'cursor-pointer hover:bg-gray-50 transition' : ''}
-              >
-                {columns.map((column) => (
-                  <td
-                    key={column.key}
-                    className={`px-6 py-4 whitespace-nowrap text-sm text-gray-900 ${alignmentClass(column.align)}`}
+            {sortedData.map((row) => {
+              const rowKey = keyExtractor(row);
+              const isExpanded = expandedRowId === rowKey;
+
+              return (
+                <>
+                  <tr
+                    key={rowKey}
+                    onClick={onRowClick ? () => onRowClick(row) : undefined}
+                    className={onRowClick ? 'cursor-pointer hover:bg-gray-50 transition' : ''}
                   >
-                    {column.render
-                      ? column.render(row[column.key], row)
-                      : row[column.key]}
-                  </td>
-                ))}
-              </tr>
-            ))}
+                    {columns.map((column) => (
+                      <td
+                        key={column.key}
+                        className={`px-6 py-4 text-sm text-gray-900 ${alignmentClass(column.align)} ${column.key === 'notes' ? '' : 'whitespace-nowrap'}`}
+                      >
+                        {column.render
+                          ? column.render(row[column.key], row)
+                          : row[column.key]}
+                      </td>
+                    ))}
+                  </tr>
+                  {isExpanded && renderExpandedRow && (
+                    <tr key={`${rowKey}-expanded`} className="bg-gray-50">
+                      <td colSpan={columns.length} className="px-6 py-4">
+                        {renderExpandedRow(row)}
+                      </td>
+                    </tr>
+                  )}
+                </>
+              );
+            })}
           </tbody>
         </table>
       </div>

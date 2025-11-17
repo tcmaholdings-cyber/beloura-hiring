@@ -65,6 +65,9 @@ export function CandidateList() {
   const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
   const [feedbackTarget, setFeedbackTarget] = useState<CandidateFeedbackTarget | null>(null);
   const [feedbackError, setFeedbackError] = useState<string | null>(null);
+  const [expandedRowId, setExpandedRowId] = useState<string | null>(null);
+  const [editingNotesId, setEditingNotesId] = useState<string | null>(null);
+  const [editingNotesValue, setEditingNotesValue] = useState('');
 
   // Fetch data
   const { data: sourcesData } = useSources();
@@ -262,6 +265,29 @@ export function CandidateList() {
     });
   };
 
+  const handleNotesEdit = (candidate: Candidate) => {
+    setEditingNotesId(candidate.id);
+    setEditingNotesValue(candidate.notes || '');
+  };
+
+  const handleNotesSave = async (candidateId: string) => {
+    try {
+      await feedbackMutation.mutateAsync({
+        id: candidateId,
+        data: { notes: editingNotesValue, interviewRating: null },
+      });
+      setEditingNotesId(null);
+      setEditingNotesValue('');
+    } catch (err) {
+      console.error('Error saving notes:', getErrorMessage(err));
+    }
+  };
+
+  const handleNotesCancel = () => {
+    setEditingNotesId(null);
+    setEditingNotesValue('');
+  };
+
   const renderNotesPreview = (notes: string | null) => {
     if (!notes || !notes.trim()) {
       return <span className="text-gray-400 italic">No notes yet</span>;
@@ -271,48 +297,78 @@ export function CandidateList() {
     return <span className="text-gray-700 text-sm">{snippet}</span>;
   };
 
-  // Table columns
+  const toggleRowExpansion = (candidateId: string) => {
+    setExpandedRowId(expandedRowId === candidateId ? null : candidateId);
+  };
+
+  // Table columns - Optimized for operator workflow
   const columns: Column<Candidate>[] = [
     {
       key: 'select',
       label: '',
-      width: '50px',
+      width: '40px',
       render: (_, row) => (
         <input
           type="checkbox"
           checked={selectedIds.has(row.id)}
-          onChange={() => handleSelectOne(row.id)}
+          onChange={(e) => {
+            e.stopPropagation();
+            handleSelectOne(row.id);
+          }}
           className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded cursor-pointer"
           aria-label={`Select ${row.name}`}
         />
       ),
     },
     {
-      key: 'name',
-      label: 'Name',
-      sortable: true,
-      render: (value) => <span className="font-medium text-gray-900">{value}</span>,
-    },
-    {
-      key: 'telegram',
-      label: 'Telegram',
-      render: (value) => (
-        <span className="text-gray-600">{value || '—'}</span>
+      key: 'expand',
+      label: '',
+      width: '40px',
+      render: (_, row) => (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            toggleRowExpansion(row.id);
+          }}
+          className="text-gray-500 hover:text-gray-700 focus:outline-none"
+          aria-label={expandedRowId === row.id ? 'Collapse details' : 'Expand details'}
+        >
+          <svg
+            className={`h-5 w-5 transition-transform ${expandedRowId === row.id ? 'rotate-90' : ''}`}
+            fill="currentColor"
+            viewBox="0 0 20 20"
+          >
+            <path
+              fillRule="evenodd"
+              d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"
+              clipRule="evenodd"
+            />
+          </svg>
+        </button>
       ),
     },
     {
-      key: 'country',
-      label: 'Country',
-      render: (value) => (
-        <span className="text-gray-600">{value || '—'}</span>
+      key: 'name',
+      label: 'Candidate',
+      sortable: true,
+      width: '20%',
+      render: (_, row) => (
+        <div>
+          <div className="font-medium text-gray-900">{row.name}</div>
+          <div className="text-xs text-gray-500 flex gap-2 mt-1">
+            {row.telegram && <span>@{row.telegram}</span>}
+            {row.country && <span>• {row.country}</span>}
+          </div>
+        </div>
       ),
     },
     {
       key: 'currentStage',
       label: 'Stage',
       sortable: true,
+      width: '12%',
       render: (value: CandidateStage) => (
-        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 whitespace-nowrap">
           {STAGE_LABELS[value]}
         </span>
       ),
@@ -320,63 +376,83 @@ export function CandidateList() {
     {
       key: 'interviewRating',
       label: 'Rating',
-      render: (value: Candidate['interviewRating']) => (
-        <span className={getRatingBadgeClasses(value)}>{getRatingLabel(value)}</span>
+      width: '10%',
+      render: (value: Candidate['interviewRating'], row) => (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            openFeedbackModal({
+              id: row.id,
+              name: row.name,
+              interviewRating: row.interviewRating,
+              notes: row.notes,
+            });
+          }}
+          className={`${getRatingBadgeClasses(value)} cursor-pointer hover:opacity-80 transition`}
+          aria-label="Click to update rating"
+        >
+          {getRatingLabel(value)}
+        </button>
       ),
     },
     {
       key: 'notes',
-      label: 'Notes',
-      width: '25%',
-      render: (_, row) => (
-        <div className="max-w-xs">{renderNotesPreview(row.notes)}</div>
-      ),
-    },
-    {
-      key: 'currentOwner',
-      label: 'Owner',
-      render: (value: CandidateOwner | null) => (
-        <span className="text-gray-700 capitalize">
-          {value ? value.replace('_', ' ') : 'Unassigned'}
-        </span>
-      ),
-    },
-    {
-      key: 'source',
-      label: 'Source',
-      render: (_, row) => (
-        <span className="text-gray-600">{row.source?.name || '—'}</span>
-      ),
-    },
-    {
-      key: 'createdAt',
-      label: 'Created',
-      sortable: true,
-      render: (value) => (
-        <span className="text-gray-600 text-sm">{formatDate(value)}</span>
-      ),
+      label: 'Notes (click to edit)',
+      width: '35%',
+      render: (_, row) => {
+        if (editingNotesId === row.id) {
+          return (
+            <div className="flex gap-2 items-center" onClick={(e) => e.stopPropagation()}>
+              <textarea
+                value={editingNotesValue}
+                onChange={(e) => setEditingNotesValue(e.target.value)}
+                className="flex-1 text-sm border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 min-h-[60px]"
+                placeholder="Add notes..."
+                autoFocus
+                onKeyDown={(e) => {
+                  if (e.key === 'Escape') {
+                    handleNotesCancel();
+                  }
+                }}
+              />
+              <div className="flex flex-col gap-1">
+                <button
+                  onClick={() => handleNotesSave(row.id)}
+                  className="px-2 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700 whitespace-nowrap"
+                >
+                  Save
+                </button>
+                <button
+                  onClick={handleNotesCancel}
+                  className="px-2 py-1 bg-gray-300 text-gray-700 text-xs rounded hover:bg-gray-400 whitespace-nowrap"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          );
+        }
+        return (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              handleNotesEdit(row);
+            }}
+            className="text-left w-full hover:bg-gray-50 px-2 py-1 rounded transition"
+            aria-label="Click to edit notes"
+          >
+            {renderNotesPreview(row.notes)}
+          </button>
+        );
+      },
     },
     {
       key: 'actions',
-      label: 'Actions',
+      label: '',
       align: 'right',
+      width: '100px',
       render: (_, row) => (
-        <div className="flex items-center justify-end gap-2">
-          <Button
-            size="sm"
-            variant="success"
-            onClick={(e) => {
-              e.stopPropagation();
-              openFeedbackModal({
-                id: row.id,
-                name: row.name,
-                interviewRating: row.interviewRating,
-                notes: row.notes,
-              });
-            }}
-          >
-            Feedback
-          </Button>
+        <div className="flex items-center justify-end gap-1">
           <Button
             size="sm"
             variant="ghost"
@@ -574,6 +650,48 @@ export function CandidateList() {
           keyExtractor={(row) => row.id}
           isLoading={isLoading}
           emptyMessage="No candidates found"
+          expandedRowId={expandedRowId}
+          renderExpandedRow={(candidate) => (
+            <div className="grid grid-cols-2 gap-6 bg-white p-4 rounded border border-gray-200">
+              <div>
+                <h4 className="font-semibold text-gray-900 mb-3">Additional Details</h4>
+                <dl className="space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <dt className="text-gray-600">Owner:</dt>
+                    <dd className="font-medium text-gray-900">
+                      {candidate.currentOwner ? candidate.currentOwner.replace('_', ' ') : 'Unassigned'}
+                    </dd>
+                  </div>
+                  <div className="flex justify-between">
+                    <dt className="text-gray-600">Source:</dt>
+                    <dd className="font-medium text-gray-900">{candidate.source?.name || '—'}</dd>
+                  </div>
+                  <div className="flex justify-between">
+                    <dt className="text-gray-600">Created:</dt>
+                    <dd className="font-medium text-gray-900">{formatDate(candidate.createdAt)}</dd>
+                  </div>
+                  {candidate.telegram && (
+                    <div className="flex justify-between">
+                      <dt className="text-gray-600">Telegram:</dt>
+                      <dd className="font-medium text-gray-900">@{candidate.telegram}</dd>
+                    </div>
+                  )}
+                  {candidate.country && (
+                    <div className="flex justify-between">
+                      <dt className="text-gray-600">Country:</dt>
+                      <dd className="font-medium text-gray-900">{candidate.country}</dd>
+                    </div>
+                  )}
+                </dl>
+              </div>
+              <div>
+                <h4 className="font-semibold text-gray-900 mb-3">Full Notes</h4>
+                <div className="bg-gray-50 p-3 rounded text-sm text-gray-700 whitespace-pre-wrap max-h-48 overflow-y-auto">
+                  {candidate.notes || <span className="text-gray-400 italic">No notes available</span>}
+                </div>
+              </div>
+            </div>
+          )}
           pagination={{
             currentPage,
             totalPages,
