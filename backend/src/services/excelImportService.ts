@@ -179,13 +179,17 @@ const mapPipelineStage = (stage: string | undefined): PipelineStage | undefined 
 
   const stageMap: Record<string, PipelineStage> = {
     new: PipelineStage.new,
-    screening: PipelineStage.screening,
-    interviewing: PipelineStage.interviewing,
-    technical_assessment: PipelineStage.technical_assessment,
-    final_review: PipelineStage.final_review,
-    offer: PipelineStage.offer,
-    hired: PipelineStage.hired,
-    rejected: PipelineStage.rejected,
+    qualifying: PipelineStage.qualifying,
+    interview_scheduled: PipelineStage.interview_scheduled,
+    interview_done: PipelineStage.interview_done,
+    tests_scheduled: PipelineStage.tests_scheduled,
+    tests_done: PipelineStage.tests_done,
+    mock_scheduled: PipelineStage.mock_scheduled,
+    mock_done: PipelineStage.mock_done,
+    onboarding_assigned: PipelineStage.onboarding_assigned,
+    onboarding_done: PipelineStage.onboarding_done,
+    probation_start: PipelineStage.probation_start,
+    probation_end: PipelineStage.probation_end,
   };
 
   const normalized = stage.toLowerCase().replace(/\s+/g, '_');
@@ -199,9 +203,9 @@ const mapOwnerRole = (owner: string | undefined): OwnerRole | undefined => {
   if (!owner) return undefined;
 
   const ownerMap: Record<string, OwnerRole> = {
-    hr_managers: OwnerRole.hr_managers,
+    sourcer: OwnerRole.sourcer,
+    interviewer: OwnerRole.interviewer,
     chatting_managers: OwnerRole.chatting_managers,
-    ops_managers: OwnerRole.ops_managers,
   };
 
   const normalized = owner.toLowerCase().replace(/\s+/g, '_');

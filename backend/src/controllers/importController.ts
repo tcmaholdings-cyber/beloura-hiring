@@ -8,13 +8,14 @@ import {
 /**
  * Preview Excel file contents without importing
  */
-export const previewImport = async (req: Request, res: Response) => {
+export const previewImport = async (req: Request, res: Response): Promise<void> => {
   try {
     if (!req.file) {
-      return res.status(400).json({
+      res.status(400).json({
         success: false,
         message: 'No file uploaded',
       });
+      return;
     }
 
     const candidates = parseExcelFile(req.file.buffer);
@@ -51,22 +52,24 @@ export const previewImport = async (req: Request, res: Response) => {
 /**
  * Import candidates from Excel file
  */
-export const executeImport = async (req: Request, res: Response) => {
+export const executeImport = async (req: Request, res: Response): Promise<void> => {
   try {
     if (!req.file) {
-      return res.status(400).json({
+      res.status(400).json({
         success: false,
         message: 'No file uploaded',
       });
+      return;
     }
 
     const candidates = parseExcelFile(req.file.buffer);
 
     if (candidates.length === 0) {
-      return res.status(400).json({
+      res.status(400).json({
         success: false,
         message: 'No valid data found in Excel file',
       });
+      return;
     }
 
     const result = await importCandidates(candidates);
@@ -109,22 +112,26 @@ export const downloadTemplate = (_req: Request, res: Response) => {
       'America/New_York',
       'LinkedIn',
       'Jane Smith',
-      'screening',
-      'hr_managers',
+      'qualifying',
+      'sourcer',
       '4',
       'Strong technical background',
     ],
     stages: [
       'new',
-      'screening',
-      'interviewing',
-      'technical_assessment',
-      'final_review',
-      'offer',
-      'hired',
-      'rejected',
+      'qualifying',
+      'interview_scheduled',
+      'interview_done',
+      'tests_scheduled',
+      'tests_done',
+      'mock_scheduled',
+      'mock_done',
+      'onboarding_assigned',
+      'onboarding_done',
+      'probation_start',
+      'probation_end',
     ],
-    owners: ['hr_managers', 'chatting_managers', 'ops_managers'],
+    owners: ['sourcer', 'interviewer', 'chatting_managers'],
   };
 
   res.json({

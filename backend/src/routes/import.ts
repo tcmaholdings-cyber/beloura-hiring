@@ -1,7 +1,6 @@
 import express from 'express';
 import { uploadExcel } from '../middleware/upload';
 import { authenticate } from '../middleware/auth';
-import { checkPermission } from '../middleware/rbac';
 import {
   previewImport,
   executeImport,
@@ -20,12 +19,11 @@ router.get('/template', authenticate, downloadTemplate);
 /**
  * @route POST /api/v1/import/preview
  * @desc Preview Excel file contents without importing
- * @access Private (requires authentication and permission)
+ * @access Private (requires authentication)
  */
 router.post(
   '/preview',
   authenticate,
-  checkPermission('candidates', 'create'),
   uploadExcel.single('file'),
   previewImport
 );
@@ -33,12 +31,11 @@ router.post(
 /**
  * @route POST /api/v1/import/execute
  * @desc Import candidates from Excel file
- * @access Private (requires authentication and permission)
+ * @access Private (requires authentication)
  */
 router.post(
   '/execute',
   authenticate,
-  checkPermission('candidates', 'create'),
   uploadExcel.single('file'),
   executeImport
 );
